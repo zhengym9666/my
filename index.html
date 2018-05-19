@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <style>
+        *{
+          margin: 0;
+          padding: 0;
+        }
+        .box{
+          width: 500px;
+          height: 200px;
+          border: 1px solid #000;
+          padding: 5px;
+          margin:100px auto;
+        }
+        .inner{
+          width: 500px;
+          height: 200px;
+          position: relative;
+          overflow: hidden;
+        }
+        ul{
+          list-style: none;
+          width: 600%;
+          position: absolute;
+        }
+        li{
+          float: left;
+        }
+        .square{
+          position: absolute;
+          bottom:5px;
+          right: 5px;
+        }
+        .square span{
+          display: inline-block;
+          width: 20px;
+          height: 20px;
+          background-color: #fff;
+          border: 1px solid #fff;
+          text-align: center;
+          line-height: 20px;
+        }
+        .LeftRight{
+          display:none;
+          cursor:pointer;
+        }
+        .LeftRight span{
+          display: inline-block;
+          width: 35px;
+          height: 35px;
+          text-align: center;
+          line-height: 35px;
+          font-size: 30px;
+          background-color: rgba(200,200,200,0.5);
+          border: 1px solid #fff;
+          position: absolute;
+          top:70px;
+          color: #555;
+        }
+        #left{
+          position: absolute;
+          left:15px;
+        }
+        #right{
+          position: absolute;
+          left:445px;
+        }
+        .square .current{
+          /*颜色可以继承，但必须要指定父盒子*/
+          background-color: #f90;
+          color: #fff;
+        }
+        </style>
+    </head>
+    <body>
+    <div class="box" id="box">
+      <div class="inner" id="inner">
+        <ul>
+          <li><img src="images/1.jpg" height="200" width="500" alt=""></li>
+          <li><img src="images/2.jpg" height="200" width="500" alt=""></li>
+          <li><img src="images/3.jpg" height="200" width="500" alt=""></li>
+          <li><img src="images/4.jpg" height="200" width="500" alt=""></li>
+          <li><img src="images/5.jpg" height="200" width="500" alt=""></li>
+        </ul>
+        <div class="square">
+          <span class="current">1</span>
+          <span>2</span>
+          <span>3</span>
+          <span>4</span>
+          <span>5</span>
+        </div>
+        <div class="LeftRight">
+          <span id="left"><</span>
+          <span id="right">></span>
+        </div>
+      </div>   
+    </div>
+    </body>
+</html>
+<script>
+  // 需求：打开页面，图片和小方块能自动轮播，鼠标放上去轮播停止并显示左右按钮，移开隐藏按钮，鼠标点击左右侧按钮可以进行图片移动
+  // 思路：获取事件源和相关元素
+  var box=document.getElementById("box");
+  var inner=document.getElementById("inner");
+  var ul=inner.children[0];
+  var sqArr=inner.children[1].children;
+  var LeftRight=inner.children[2];
+  var imgWidth=inner.offsetWidth;
+  var timer="";
+  var key=0;
+  var index=0;
+  // 为了让最后一张可以无缝切换到第一张，要在最后一张后面复制第一个li
+  var newLi=ul.children[0].cloneNode(true);
+  ul.appendChild(newLi);
+  // 绑定事件
+  // 1.鼠标放上去，滑动到相应索引图片
+   for(var i=0;i<sqArr.length;i++){
+    sqArr[i].index=i;
+    sqArr[i].onmouseover=function(){
+      // 排他思想
+      for(var i=0;i<sqArr.length;i++){
+        sqArr[i].className="";
+      }
+      this.className="current";
+      animation(ul,-this.index*imgWidth);
+      // bug1:当鼠标放上去轮播停止后，鼠标点击某个小方块再放开，轮播并没有按照点击的那个小方块之后的顺序轮播，而是按照它原来的顺序轮播
+      // 解决：将index和key与this.index同步
+      index=key=this.index;
+    }
+   }
+  // 2.添加定时器
+  // 图片和小方块能自动轮播，使用定时器实现
+    timer=setInterval(autoplay, 1000);
+    // 要两个索引值，一个记录小方块，一个记录图片  
+    function autoplay(){
+      key++;
+      index++;
+      // 先判断是否到达最后一个小方块，如果到达最后一个小方块了，回到第一个小方块
+      if(key>sqArr.length-1){
+        key=0;
+      }
+      // 小方块自动点亮
+      // 排他思想
+      for(var i=0;i<sqArr.length;i++){
+        sqArr[i].className="";
+      }
+      sqArr[key].className="current";
+      // 图片自动轮播(ul移动)
+      // 使用动画框架
+      // 先判断是否已经到达最后一张，如果到达立马跳回第一张，然后切换到第二张，所以前面需要将第一张复制到最后一张去，这样才能实现无缝切换
+      if(index>sqArr.length){
+        ul.style.left=0;
+        index=1;
+      }
+      animation(ul,-index*imgWidth);   
+    }
+    // 绑定事件，鼠标放上去，轮播结束
+    box.onmouseover=function(){
+      clearInterval(timer);
+      LeftRight.style.display="block";
+    }
+    // 绑定事件，鼠标放上去，轮播结束
+    box.onmouseout=function(){
+      timer=setInterval(autoplay,1000);
+      LeftRight.style.display="";
+    }
+    // 动画框架
+    function animation(ele,target){
+    clearInterval(ele.timer);
+    ele.timer=setInterval(function(){
+      var speed=(ele.offsetLeft<target)?10:-10;
+      var dis=target-ele.offsetLeft;
+      ele.style.left=ele.offsetLeft+speed+"px";
+      if(Math.abs(dis)<=Math.abs(speed)){
+        ele.style.left=target+"px";
+        clearInterval(ele.timer);
+      }
+    }, 10);
+  }
+  // 3.左右焦点图
+  // 鼠标放上去，按钮显示，移开则隐藏，鼠标点击左右按钮图片移动
+  // 按钮显示隐藏由于跟前面的清除开启定时器事件的绑定事件相同(都是onmouseover和onmouseout所以可以写到一起去)
+  // box.onmouseover=function(){
+  // LeftRight.style.display="block";
+  // }
+  // box.onmouseout=function(){
+  // LeftRight.style.display="";
+  // }
+  // 鼠标点击右侧按钮图片移动与定时器一模一样
+  right.onclick=function(){
+    autoplay();
+  }
+  // 鼠标点击左侧按钮图片移动,只需将定时器稍做修正即可
+  left.onclick=function(){
+      key--;
+      index--;
+      // 如果已经是第一个小方块再点击会去到最后一个小方块
+      if(key<0){
+        key=sqArr.length-1;
+      }
+      // 小方块自动点亮
+      // 排他思想
+      for(var i=0;i<sqArr.length;i++){
+        sqArr[i].className="";
+      }
+      sqArr[key].className="current";
+      // 如果已经是第一张，再点击会立马定位到最后一张，然后往前滑动，由于最后一张由第一张复制而来，从而实现了无缝滚动
+      if(index<0){
+        ul.style.left=-(sqArr.length)*imgWidth+"px";
+        index=sqArr.length-1;
+      }
+      animation(ul,-index*imgWidth);   
+
+  }
+
+</script>
